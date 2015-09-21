@@ -2,16 +2,15 @@
 
 var babelify = require('babelify');
 var blaze = require('blaze_compiler/src/compiler');
-var browserSync = require('browser-sync');
 var browserify = require('browserify');
+var browserSync = require('browser-sync');
 var buffer = require('vinyl-buffer');
 var gulp = require('gulp');
 var gutil = require('gulp-util');
+var historyApiFallback = require('connect-history-api-fallback')
 var source = require('vinyl-source-stream');
 var sourcemaps = require('gulp-sourcemaps');
 var watchify = require('watchify');
-
-var reload = browserSync.reload;
 
 var bundler = watchify(browserify(
   Object.assign({},
@@ -27,7 +26,8 @@ function bundle() {
     // log errors if they happen
     .on('error', gutil.log.bind(gutil, 'Browserify Error'))
     .pipe(source('bundle.js'))
-    .pipe(gulp.dest('./dist'));
+    .pipe(gulp.dest('./dist'))
+    .pipe(browserSync.reload({ stream: true }));
 }
 
 gulp.task('js', bundle);
@@ -44,9 +44,9 @@ gulp.task('serve', ['build'], () => {
   browserSync({
     server: {
       baseDir: 'dist'
-    }
+    },
+    middleware: [ historyApiFallback() ],
   });
-  bundler.on('update', reload);
 });
 
 gulp.task('rules', () => {

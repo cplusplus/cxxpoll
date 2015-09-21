@@ -16,33 +16,43 @@ schema:
         type: object
         constraint: userIs($user)
         properties:
+          name: {type: string}
           organizations:
             type: object
-            $index:
-              type: string
-              constraint: root.organizations[next].exists()
+            $orgId:
+              type: boolean
+              constraint: (root.organizations[$orgId].exists() && next === true) || !next.exists()
     organizations:
       type: object
       # The orgId is derived from the initial name of the organization, and is used in URLs.
       $orgId:
         type: object
-        constraint: next.owner.exists()
+        required: [owner, name]
         properties:
           owner:
             type: string
             # The owner must be a user.
             constraint: ownershipField()
-          name: { type: string }
-          polls:
-            type: object
-            $index:
-              type: string
-              constraint: root.polls[next].organization == $orgId
+          name:
+            type: string
+            constraint: userIs(next.parent().owner)
+    # Holds an organization's polls in the rough order they were added, separate
+    # from the organization metadata. Avoiding a wildchild under the
+    # organization itself lets us create organizations atomically
+    organizationPolls:
+      type: object
+      $orgId:
+        type: object
+        constraint: root.organizations[$orgId].exists()
+        $index:
+          type: string
+          constraint: root.polls[next].organization == $orgId
     polls:
       type: object
       # The pollId is derived from the initial name of the poll, and is used in URLs.
       $pollId:
         type: object
+        required: [name, organization, state]
         properties:
           name: { type: string }
           organization:
@@ -51,31 +61,30 @@ schema:
           state:
             type: string
             enum: [creating, open, closed]
-          options:
-            type: object
-            $optionId:
-              type: object
-              properties:
-                author:
-                  type: string
-                  constraint: ownershipField()
-                value: { type: string }
+    pollOptions:
+      type: object
+      $pollId:
+        type: object
+        constraint: root.polls[$pollId].exists()
+        $optionId: # A push ID.
+          type: object
+          properties:
+            author:
+              type: string
+              constraint: ownershipField()
+            value: { type: string }
     # Split from polls so we can retrieve metadata without retrieving all the votes.
     pollVotes:
       type: object
       $pollId:
         type: object
         constraint: root.polls[$pollId].exists()
-        $voteId:
-          type: object
-          properties:
-            voter:
-              type: string
-              constraint: creatorField()
-            # A vote is a json string holding an array of arrays of
-            # $optionIds. This isn't interpreted at the Firebase level: if you
-            # want to write an invalid vote, go ahead.
-            vote: { type: string }
+        $voter: # A user ID.
+          # A vote is a json string holding an array of arrays of
+          # $optionIds. This isn't interpreted at the Firebase level: if you
+          # want to write an invalid vote, go ahead.
+          type: string
+          constraint: userIs($voter) && root.users[$voter].exists()
 
 
 access:
