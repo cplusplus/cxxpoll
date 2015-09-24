@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Firebase from 'firebase';
+'use strict';
 
-export let firebaseRoot = new Firebase('https://cxxpoll.firebaseio.com/');
+export function nameToUrl(name) {
+  return name.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase().trim('-');
+};

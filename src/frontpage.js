@@ -1,3 +1,17 @@
+// Copyright 2015 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 'use strict';
 
 import _ from 'lodash';
@@ -8,18 +22,14 @@ import { Link } from 'react-router';
 
 import PollAppBar from './appbar';
 import { firebaseRoot } from './config';
-import { FirebaseValue } from './firebaseutil';
+import { AuthStateMixin, FirebaseValue } from './firebaseutil';
 import { CreateOrganization, OrgJoinLeaveButton } from './organization';
 
 let FrontPage = React.createClass({
-  mixins: [ReactFireMixin, React.addons.LinkedStateMixin],
+  mixins: [ReactFireMixin, React.addons.LinkedStateMixin, AuthStateMixin],
 
   componentWillMount() {
     this.bindAsArray(firebaseRoot.child('organizations'), 'organizations');
-    firebaseRoot.onAuth(this.onAuth, this);
-  },
-  componentWillUnmount() {
-    firebaseRoot.offAuth(this.onAuth, this);
   },
 
   getInitialState: function() {
@@ -30,7 +40,6 @@ let FrontPage = React.createClass({
   },
 
   onAuth(auth) {
-    this.setState({auth: auth});
     if (this.firebaseRefs.userData !== undefined) {
       this.unbind('userData');
     }
@@ -46,18 +55,7 @@ let FrontPage = React.createClass({
 
         {
           this.state.auth ?
-          (
-            <div>
-              <CreateOrganization
-                ref="createOrganization"
-                auth={this.state.auth}
-                />
-              <RaisedButton
-                label="Create Organization"
-                onTouchTap={()=>this.refs.createOrganization.show()}
-                />
-            </div>
-          )
+          <CreateOrganization auth={this.state.auth} />
           : ""
         }
         {
